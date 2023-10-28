@@ -1,0 +1,2 @@
+rotatingMotion_3dof_pitch_xy_translate_ext_thrust.C
+LIB = $(FOAM_USER_LIBBIN)/rotatingMotion_3dof_pitch_xy_translate_ext_thrust
