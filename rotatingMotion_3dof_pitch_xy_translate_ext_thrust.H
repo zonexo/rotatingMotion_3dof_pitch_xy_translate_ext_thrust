@@ -116,12 +116,14 @@ class rotatingMotion_3dof_pitch_xy_translate_ext_thrust
 		
 		
 		//- Coefficient for velocity integration (default: 0.5)
-        const scalar gamma_;
+        const scalar gamma_new_;
   
         //- Coefficient for position and orientation integration (default: 0.25)
-        const scalar beta_;
+        const scalar beta_new_;
          
         //- Linear velocity
+		const vector initial_velocity_;
+		
 		mutable scalar x_displ_old;
 		mutable scalar vel_x_old;
 		mutable scalar acc_x_old;

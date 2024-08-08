@@ -104,15 +104,16 @@ Foam::solidBodyMotionFunctions::rotatingMotion_3dof_pitch_xy_translate_ext_thrus
     accelerationRelaxation_(SBMFCoeffs_.getOrDefault<scalar>("accelerationRelaxation", 1.0)),
 	accelerationDamping_(SBMFCoeffs_.getOrDefault<scalar>("accelerationDamping", 1.0)),
 	g_(SBMFCoeffs_.get<vector>("g")),
-	gamma_(SBMFCoeffs_.getOrDefault<scalar>("gamma", 0.5)),
-	beta_
+	gamma_new_(SBMFCoeffs_.getOrDefault<scalar>("gamma_new", 0.5)),
+	beta_new_
 	(
 		max
 		(
-		 0.25*(gamma_ + 0.5)*(gamma_ + 0.5),
-		 SBMFCoeffs_.getOrDefault<scalar>("beta", 0.25)
+		 0.25*(gamma_new_ + 0.5)*(gamma_new_ + 0.5),
+		 SBMFCoeffs_.getOrDefault<scalar>("beta_new", 0.25)
 		)
 	),
+	initial_velocity_(SBMFCoeffs_.get<vector>("initial_velocity")),
 	x_displ_old(0),
 	vel_x_old(0),
 	acc_x_old(0),
@@ -202,7 +203,7 @@ Foam::solidBodyMotionFunctions::rotatingMotion_3dof_pitch_xy_translate_ext_thrus
 				
 		Info << "mass = " << mass_ << " momentOfInertia = " << momentOfInertia_[2] << endl;
 		
-		Info << "gamma = " << gamma_ << " beta = " << beta_ << " g = " << g_ << " max_propeller_thrust = " << max_propeller_thrust_ << endl;
+		Info << "gamma_new = " << gamma_new_ << " beta_new = " << beta_new_ << " g = " << g_ << endl;
 		
 		Info << "accelerationRelaxation = " << accelerationRelaxation_ << " accelerationDamping = " << accelerationDamping_ << endl;
 
@@ -317,9 +318,15 @@ Foam::solidBodyMotionFunctions::rotatingMotion_3dof_pitch_xy_translate_ext_thrus
 
 			angular_acc_z = accelerationRelaxation_*(f.momentEff()[2]/momentOfInertia_[2]) + (1. - accelerationRelaxation_)*angular_acc_z_old;
 			
-			angular_vel_z = angular_vel_z_old + accelerationDamping_*delta_time*(gamma_*angular_acc_z + (1. - gamma_)*angular_acc_z_old);
+			angular_vel_z = angular_vel_z_old + accelerationDamping_*delta_time*(gamma_new_*angular_acc_z + (1. - gamma_new_)*angular_acc_z_old);
 			
-			angle = angle_old + angular_vel_z_old*delta_time + accelerationDamping_*delta_time*delta_time*(beta_*angular_acc_z + (0.5 - beta_)*angular_acc_z_old);
+			angle = angle_old + angular_vel_z_old*delta_time + accelerationDamping_*delta_time*delta_time*(beta_new_*angular_acc_z + (0.5 - beta_new_)*angular_acc_z_old);
+			
+			acc_x = accelerationRelaxation_*(f.forceEff()[0]/mass_ + g_[0]) + (1. - accelerationRelaxation_)*acc_x_old;
+			
+			vel_x = vel_x_old + accelerationDamping_*delta_time*(gamma_new_*acc_x + (1. - gamma_new_)*acc_x_old);
+			
+			delta_x = vel_x*delta_time + accelerationDamping_*delta_time*delta_time*(beta_new_*acc_x + (0.5 - beta_new_)*acc_x_old);
 			
 			
 			
@@ -369,20 +376,16 @@ Foam::solidBodyMotionFunctions::rotatingMotion_3dof_pitch_xy_translate_ext_thrus
 			}
 			
 			//new acc with propeller_thrust_x
-			acc_x = accelerationRelaxation_*(f.forceEff()[0]/mass_ + g_[0] + propeller_thrust_x/mass_) + (1. - accelerationRelaxation_)*acc_x_old;
 			
-			vel_x = vel_x_old + accelerationDamping_*delta_time*(gamma_*acc_x + (1. - gamma_)*acc_x_old);
-			
-			delta_x = vel_x*delta_time + accelerationDamping_*delta_time*delta_time*(beta_*acc_x + (0.5 - beta_)*acc_x_old);
 
 			x_displ = x_displ_old + delta_x;
 			
 			//new acc with propeller_thrust_y
 			acc_y = accelerationRelaxation_*(f.forceEff()[1]/mass_ + g_[1] + propeller_thrust_y/mass_) + (1. - accelerationRelaxation_)*acc_y_old;
 			
-			vel_y = vel_y_old + accelerationDamping_*delta_time*(gamma_*acc_y + (1. - gamma_)*acc_y_old);
+			vel_y = vel_y_old + accelerationDamping_*delta_time*(gamma_new_*acc_y + (1. - gamma_new_)*acc_y_old);
 			
-			delta_y = vel_y*delta_time + accelerationDamping_*delta_time*delta_time*(beta_*acc_y + (0.5 - beta_)*acc_y_old);
+			delta_y = vel_y*delta_time + accelerationDamping_*delta_time*delta_time*(beta_new_*acc_y + (0.5 - beta_new_)*acc_y_old);
 
 			y_displ = y_displ_old + delta_y;
 			
@@ -408,7 +411,7 @@ Foam::solidBodyMotionFunctions::rotatingMotion_3dof_pitch_xy_translate_ext_thrus
 			//x translation
 			acc_x = f.forceEff()[0]/mass_ + g_[0];
 			
-			vel_x = vel_x_old + delta_time*acc_x;
+			vel_x = initial_velocity_[0] + delta_time*acc_x;
 			
 			delta_x = vel_x_old*delta_time + 0.5*delta_time*delta_time*acc_x;
 			
@@ -419,7 +422,7 @@ Foam::solidBodyMotionFunctions::rotatingMotion_3dof_pitch_xy_translate_ext_thrus
 			//y translation
 			acc_y = f.forceEff()[1]/mass_ + g_[1];
 			
-			vel_y = vel_y_old + delta_time*acc_y;
+			vel_y = initial_velocity_[1] + delta_time*acc_y;
 			
 			delta_y = vel_y_old*delta_time + 0.5*delta_time*delta_time*acc_y;
 			
